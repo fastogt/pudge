@@ -1,3 +1,3 @@
-module github.com/recoilme/pudge
+module github.com/fastogt/pudge
 
 go 1.13
