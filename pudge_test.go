@@ -123,15 +123,20 @@ func TestKeys(t *testing.T) {
 		v := []byte("Val:" + strconv.Itoa(i))
 		db.Set(k, v)
 	}
-	for i := 22; i >= 1; i-- {
+	loops := 22
+	for i := loops; i >= 1; i-- {
 		append(i)
 	}
 
 	//ascending
-	res, err := db.Keys(nil, 0, 0, true)
+	res, c, err := db.Keys(nil, 0, 0, true)
 	if err != nil {
 		t.Error(err)
 	}
+	if c != loops {
+		t.Error("wrong count", c)
+	}
+
 	var s = ""
 	for _, r := range res {
 		s += string(r)
@@ -141,7 +146,10 @@ func TestKeys(t *testing.T) {
 	}
 
 	//descending
-	resdesc, _ := db.Keys(nil, 0, 0, false)
+	resdesc, c, _ := db.Keys(nil, 0, 0, false)
+	if c != loops {
+		t.Error("wrong count", c)
+	}
 	s = ""
 	for _, r := range resdesc {
 		s += string(r)
@@ -151,7 +159,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//offset limit asc
-	reslimit, _ := db.Keys(nil, 2, 2, true)
+	reslimit, _, _ := db.Keys(nil, 2, 2, true)
 
 	s = ""
 	for _, r := range reslimit {
@@ -162,7 +170,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//offset limit desc
-	reslimitdesc, _ := db.Keys(nil, 2, 2, false)
+	reslimitdesc, _, _ := db.Keys(nil, 2, 2, false)
 
 	s = ""
 	for _, r := range reslimitdesc {
@@ -173,7 +181,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//from byte asc
-	resfromasc, _ := db.Keys([]byte("10"), 2, 2, true)
+	resfromasc, _, _ := db.Keys([]byte("10"), 2, 2, true)
 	s = ""
 	for _, r := range resfromasc {
 		s += string(r)
@@ -183,7 +191,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//from byte desc
-	resfromdesc, _ := db.Keys([]byte("10"), 2, 2, false)
+	resfromdesc, _, _ := db.Keys([]byte("10"), 2, 2, false)
 	s = ""
 	for _, r := range resfromdesc {
 		s += string(r)
@@ -193,7 +201,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//from byte desc
-	resnotfound, _ := db.Keys([]byte("100"), 2, 2, false)
+	resnotfound, _, _ := db.Keys([]byte("100"), 2, 2, false)
 	s = ""
 	for _, r := range resnotfound {
 		s += string(r)
@@ -203,7 +211,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//from byte not eq
-	resnoteq, _ := db.Keys([]byte("33"), 2, 2, false)
+	resnoteq, _, _ := db.Keys([]byte("33"), 2, 2, false)
 	s = ""
 	for _, r := range resnoteq {
 		s += string(r)
@@ -213,7 +221,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//by prefix
-	respref, _ := db.Keys([]byte("2*"), 4, 0, false)
+	respref, _, _ := db.Keys([]byte("2*"), 4, 0, false)
 	s = ""
 	for _, r := range respref {
 		s += string(r)
@@ -223,7 +231,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//by prefix2
-	respref2, _ := db.Keys([]byte("1*"), 2, 0, false)
+	respref2, _, _ := db.Keys([]byte("1*"), 2, 0, false)
 	s = ""
 	for _, r := range respref2 {
 		s += string(r)
@@ -233,7 +241,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//by prefixasc
-	resprefasc, err := db.Keys([]byte("1*"), 2, 0, true)
+	resprefasc, _, err := db.Keys([]byte("1*"), 2, 0, true)
 	s = ""
 	for _, r := range resprefasc {
 		s += string(r)
@@ -243,7 +251,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	//by prefixasc2
-	resprefasc2, err := db.Keys([]byte("1*"), 0, 0, true)
+	resprefasc2, _, err := db.Keys([]byte("1*"), 0, 0, true)
 	s = ""
 	for _, r := range resprefasc2 {
 		s += string(r)
@@ -578,12 +586,16 @@ func TestInMemoryWithoutPersist(t *testing.T) {
 func Test42(t *testing.T) {
 	DefaultConfig.StoreMode = 0
 	f := "test/int64"
-	for i := 1; i < 64; i++ {
+	loops := 64
+	for i := 1; i < loops; i++ {
 		Set(f, int64(i), int64(i))
 	}
-	keys, err := Keys(f, int64(42), 100, 0, true)
+	keys, c, err := Keys(f, int64(42), 100, 0, true)
 	if err != nil {
 		t.Error(err)
+	}
+	if c != loops-1 {
+		t.Error("wrong count", c)
 	}
 	if len(keys) != 21 {
 		t.Error("not 21", len(keys))
@@ -654,9 +666,13 @@ func TestEmptyKeysByPrefix(t *testing.T) {
 		t.Error(err)
 	}
 
-	keys, err := db.KeysByPrefix(prefix, 0, 0, false)
+	keys, c, err := db.KeysByPrefix(prefix, 0, 0, false)
 	if err != ErrKeyNotFound {
 		t.Errorf("Error must be ErrKeyNotFound got: %s", err)
+	}
+
+	if c != 0 {
+		t.Error("wrong count", c)
 	}
 
 	if len(keys) != 0 {
@@ -665,9 +681,13 @@ func TestEmptyKeysByPrefix(t *testing.T) {
 
 	db.Set("some-key", "some-value")
 
-	keys, err = db.KeysByPrefix(prefix, 0, 0, false)
+	keys, c, err = db.KeysByPrefix(prefix, 0, 0, false)
 	if err != ErrKeyNotFound {
 		t.Errorf("Error must be ErrKeyNotFound got: %s", err)
+	}
+
+	if c != 0 {
+		t.Errorf("Wrong amount of keys: %d", len(keys))
 	}
 
 	if len(keys) != 0 {
@@ -690,9 +710,13 @@ func TestEmptyKeysByPrefix(t *testing.T) {
 		t.Error(err)
 	}
 
-	keys, err = db.KeysByPrefix(prefix, 0, 0, true)
+	keys, c, err = db.KeysByPrefix(prefix, 0, 0, true)
 	if err != ErrKeyNotFound {
 		t.Errorf("Error must be ErrKeyNotFound got: %s", err)
+	}
+
+	if c != 0 {
+		t.Errorf("Wrong amount of keys for empty database: %d", len(keys))
 	}
 
 	if len(keys) != 0 {
@@ -701,9 +725,13 @@ func TestEmptyKeysByPrefix(t *testing.T) {
 
 	db.Set("some-key", "some-value")
 
-	keys, err = db.KeysByPrefix(prefix, 0, 0, true)
+	keys, c, err = db.KeysByPrefix(prefix, 0, 0, true)
 	if err != ErrKeyNotFound {
 		t.Errorf("Error must be ErrKeyNotFound got: %s", err)
+	}
+
+	if c != 0 {
+		t.Errorf("Wrong amount of keys: %d", len(keys))
 	}
 
 	if len(keys) != 0 {
@@ -721,9 +749,13 @@ func TestEmptyKeysByPrefix(t *testing.T) {
 		t.Error(err)
 	}
 
-	keys, err = db.KeysByPrefix(prefix, 0, 1, false)
+	keys, c, err = db.KeysByPrefix(prefix, 0, 1, false)
 	if err != ErrKeyNotFound {
 		t.Errorf("Error must be ErrKeyNotFound got: %s", err)
+	}
+
+	if c != 0 {
+		t.Errorf("Wrong amount of keys for empty database: %d", len(keys))
 	}
 
 	if len(keys) != 0 {
@@ -732,9 +764,13 @@ func TestEmptyKeysByPrefix(t *testing.T) {
 
 	db.Set("some-key", "some-value")
 
-	keys, err = db.KeysByPrefix(prefix, 0, 1, false)
+	keys, c, err = db.KeysByPrefix(prefix, 0, 1, false)
 	if err != ErrKeyNotFound {
 		t.Errorf("Error must be ErrKeyNotFound got: %s", err)
+	}
+
+	if c != 0 {
+		t.Errorf("Wrong amount of keys: %d", len(keys))
 	}
 
 	if len(keys) != 0 {

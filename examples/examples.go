@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/recoilme/pudge"
+	"github.com/fastogt/pudge"
 )
 
 func main() {
@@ -15,13 +15,13 @@ func main() {
 	ExampleInMemoryWithoutPersist()
 }
 
-//ExampleSet lazy
+// ExampleSet lazy
 func ExampleSet() {
 	pudge.Set("../test/test", "Hello", "World")
 	defer pudge.CloseAll()
 }
 
-//ExampleGet lazy
+// ExampleGet lazy
 func ExampleGet() {
 	output := ""
 	pudge.Get("../test/test", "Hello", &output)
@@ -30,7 +30,7 @@ func ExampleGet() {
 	defer pudge.CloseAll()
 }
 
-//ExampleDelete lazy
+// ExampleDelete lazy
 func ExampleDelete() {
 	err := pudge.Delete("../test/test", "Hello")
 	if err == pudge.ErrKeyNotFound {
@@ -38,7 +38,7 @@ func ExampleDelete() {
 	}
 }
 
-//ExampleDeleteFile lazy
+// ExampleDeleteFile lazy
 func ExampleDeleteFile() {
 	err := pudge.DeleteFile("../test/test")
 	if err != nil {
@@ -46,7 +46,7 @@ func ExampleDeleteFile() {
 	}
 }
 
-//ExampleOpen complex example
+// ExampleOpen complex example
 func ExampleOpen() {
 	cfg := &pudge.Config{
 		SyncInterval: 0} //disable every second fsync
@@ -68,7 +68,7 @@ func ExampleOpen() {
 	log.Println(point)
 	// Output: {8 8}
 	// Select 2 keys, from 7 in ascending order
-	keys, _ := db.Keys(7, 2, 0, true)
+	keys, _, _ := db.Keys(7, 2, 0, true)
 	for _, key := range keys {
 		var p Point
 		db.Get(key, &p)
@@ -98,7 +98,7 @@ func ExampleInMemoryWithoutPersist() {
 	db.Get(89, &point)
 	log.Println(point)
 	// Output: {89 89}
-	keys, _ := db.Keys(77, 2, 0, true)
+	keys, _, _ := db.Keys(77, 2, 0, true)
 	for _, key := range keys {
 		var p Point
 		db.Get(key, &p)

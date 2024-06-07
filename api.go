@@ -272,7 +272,7 @@ func (db *Db) Delete(key interface{}) error {
 // if limit == 0 return all keys
 // if offset > 0 - skip offset records
 // If from not nil - return keys after from (from not included)
-func (db *Db) KeysByPrefix(prefix []byte, limit, offset int, asc bool) ([][]byte, error) {
+func (db *Db) KeysByPrefix(prefix []byte, limit, offset int, asc bool) ([][]byte, int, error) {
 	//log.Println("KeysByPrefix")
 	db.RLock()
 	defer db.RUnlock()
@@ -281,13 +281,13 @@ func (db *Db) KeysByPrefix(prefix []byte, limit, offset int, asc bool) ([][]byte
 	found := db.foundPref(prefix, asc)
 	if found < 0 || found >= len(db.keys) || !startFrom(db.keys[found], prefix) {
 		//not found
-		return arr, ErrKeyNotFound
+		return arr, 0, ErrKeyNotFound
 	}
 
 	start, end := checkInterval(found, limit, offset, 0, len(db.keys), asc)
 
 	if start < 0 || start >= len(db.keys) {
-		return arr, nil
+		return arr, len(db.keys), nil
 	}
 
 	if asc {
@@ -305,14 +305,14 @@ func (db *Db) KeysByPrefix(prefix []byte, limit, offset int, asc bool) ([][]byte
 			arr = append(arr, db.keys[i])
 		}
 	}
-	return arr, nil
+	return arr, len(db.keys), nil
 }
 
 // Keys return keys in ascending  or descending order (false - descending,true - ascending)
 // if limit == 0 return all keys
 // if offset > 0 - skip offset records
 // If from not nil - return keys after from (from not included)
-func (db *Db) Keys(from interface{}, limit, offset int, asc bool) ([][]byte, error) {
+func (db *Db) Keys(from interface{}, limit, offset int, asc bool) ([][]byte, int, error) {
 	// resulting array
 	//log.Println("pudge", from, from == nil)
 	arr := make([][]byte, 0, 0)
@@ -323,7 +323,7 @@ func (db *Db) Keys(from interface{}, limit, offset int, asc bool) ([][]byte, err
 		k, err := KeyToBinary(from)
 		//log.Println(bytes.Equal(k[len(k)-1:], []byte("*")))
 		if err != nil {
-			return arr, err
+			return arr, 0, err
 		}
 		if len(k) > 1 && bytes.Equal(k[len(k)-1:], []byte("*")) {
 			byteOrStr := false
@@ -344,11 +344,11 @@ func (db *Db) Keys(from interface{}, limit, offset int, asc bool) ([][]byte, err
 	defer db.RUnlock()
 	find, err := db.findKey(from, asc)
 	if from != nil && err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	start, end := checkInterval(find, limit, offset, excludeFrom, len(db.keys), asc)
 	if start < 0 || start >= len(db.keys) {
-		return arr, nil
+		return arr, len(db.keys), nil
 	}
 
 	if asc {
@@ -360,7 +360,57 @@ func (db *Db) Keys(from interface{}, limit, offset int, asc bool) ([][]byte, err
 			arr = append(arr, db.keys[i])
 		}
 	}
-	return arr, nil
+	return arr, len(db.keys), nil
+}
+
+// Keys return keys in ascending  or descending order (false - descending,true - ascending)
+// if limit == 0 return all keys
+// if offset > 0 - skip offset records
+// If from not nil - return keys after from (from not included)
+func (db *Db) Values(limit, offset int, asc bool) ([][]byte, int, error) {
+	// resulting array
+	//log.Println("pudge", from, from == nil)
+	arr := make([][]byte, 0)
+	db.RLock()
+	defer db.RUnlock()
+	find, _ := db.findKey(nil, asc)
+	start, end := checkInterval(find, limit, offset, 0, len(db.keys), asc)
+	if start < 0 || start >= len(db.keys) {
+		return arr, len(db.keys), nil
+	}
+
+	if asc {
+		for i := start; i <= end; i++ {
+			if val, ok := db.vals[string(db.keys[i])]; ok {
+				b := make([]byte, val.Size)
+				if db.storemode == 2 {
+					copy(b, val.Val)
+				} else {
+					_, err := db.fv.ReadAt(b, int64(val.Seek))
+					if err != nil {
+						continue
+					}
+				}
+				arr = append(arr, b)
+			}
+		}
+	} else {
+		for i := start; i >= end; i-- {
+			if val, ok := db.vals[string(db.keys[i])]; ok {
+				b := make([]byte, val.Size)
+				if db.storemode == 2 {
+					copy(b, val.Val)
+				} else {
+					_, err := db.fv.ReadAt(b, int64(val.Seek))
+					if err != nil {
+						continue
+					}
+				}
+				arr = append(arr, b)
+			}
+		}
+	}
+	return arr, len(db.keys), nil
 }
 
 // Counter return int64 incremented on incr
@@ -470,10 +520,10 @@ func Delete(f string, key interface{}) error {
 // if limit == 0 return all keys
 // if offset > 0 - skip offset records
 // If from not nil - return keys after from (from not included)
-func Keys(f string, from interface{}, limit, offset int, asc bool) ([][]byte, error) {
+func Keys(f string, from interface{}, limit, offset int, asc bool) ([][]byte, int, error) {
 	db, err := Open(f, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	return db.Keys(from, limit, offset, asc)
 }
@@ -522,7 +572,7 @@ func BackupAll(dir string) (err error) {
 	for _, db := range stores {
 		backup := dir + "/" + db.name
 		DeleteFile(backup)
-		keys, err := db.Keys(nil, 0, 0, true)
+		keys, _, err := db.Keys(nil, 0, 0, true)
 		if err == nil {
 			for _, k := range keys {
 				var b []byte
