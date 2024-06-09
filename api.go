@@ -386,7 +386,7 @@ func checkIntervalEx(find, limit, offset, len int, asc bool) (int, int) {
 	if end < 0 {
 		end = 0
 	}
-	if end >= len {
+	if end > len {
 		end = len - 1
 	}
 
