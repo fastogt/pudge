@@ -363,18 +363,47 @@ func (db *Db) Keys(from interface{}, limit, offset int, asc bool) ([][]byte, int
 	return arr, len(db.keys), nil
 }
 
+func checkIntervalEx(find, limit, offset, len int, asc bool) (int, int) {
+	end := 0
+	start := find
+
+	if asc {
+		start += offset
+		if limit == -1 {
+			end = len
+		} else {
+			end = (start + limit - 1)
+		}
+	} else {
+		start -= offset
+		if limit == -1 {
+			end = 0
+		} else {
+			end = start - limit + 1
+		}
+	}
+
+	if end < 0 {
+		end = 0
+	}
+	if end >= len {
+		end = len - 1
+	}
+
+	return start, end
+}
+
 // Keys return keys in ascending  or descending order (false - descending,true - ascending)
-// if limit == 0 return all keys
+// if limit == -1 return all keys
 // if offset > 0 - skip offset records
-// If from not nil - return keys after from (from not included)
-func (db *Db) Values(limit, offset int, asc bool) ([][]byte, int, error) {
+func (db *Db) Values(offset int, limit int, asc bool) ([][]byte, int, error) {
 	// resulting array
 	//log.Println("pudge", from, from == nil)
 	arr := make([][]byte, 0)
 	db.RLock()
 	defer db.RUnlock()
 	find, _ := db.findKey(nil, asc)
-	start, end := checkInterval(find, limit, offset, 0, len(db.keys), asc)
+	start, end := checkIntervalEx(find, limit, offset, len(db.keys), asc)
 	if start < 0 || start >= len(db.keys) {
 		return arr, len(db.keys), nil
 	}
