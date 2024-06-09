@@ -409,7 +409,7 @@ func (db *Db) Values(offset int, limit int, asc bool) ([][]byte, int, error) {
 	}
 
 	if asc {
-		for i := start; i <= end; i++ {
+		for i := start; i < end; i++ {
 			if val, ok := db.vals[string(db.keys[i])]; ok {
 				b := make([]byte, val.Size)
 				if db.storemode == 2 {
@@ -424,7 +424,7 @@ func (db *Db) Values(offset int, limit int, asc bool) ([][]byte, int, error) {
 			}
 		}
 	} else {
-		for i := start; i >= end; i-- {
+		for i := start; i > end; i-- {
 			if val, ok := db.vals[string(db.keys[i])]; ok {
 				b := make([]byte, val.Size)
 				if db.storemode == 2 {
