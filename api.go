@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"os"
+	"time"
 )
 
 // DefaultConfig is default config
@@ -240,6 +241,19 @@ func (db *Db) FileSize() (int64, error) {
 		return -1, err
 	}
 	return is.Size() + ds.Size(), nil
+}
+
+// ModTime returns last file modification time
+func (db *Db) ModTime() (*time.Time, error) {
+	db.RLock()
+	defer db.RUnlock()
+	var err error
+	ds, err := db.fv.Stat()
+	if err != nil {
+		return nil, err
+	}
+	res := ds.ModTime()
+	return &res, nil
 }
 
 // Count returns the number of items in the Db.
